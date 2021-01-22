@@ -1,0 +1,18 @@
+---
+kind: pipeline
+type: kubernetes
+name: k8s-http-distribution-testing
+
+steps:
+  - name: build-docker
+    image: plugins/docker
+    settings:
+      repo: cube8021/k8s-http-distribution-testing
+      tags:
+        - ${DRONE_BUILD_NUMBER}
+        - ${DRONE_COMMIT_BRANCH}
+        - latest
+      username:
+        from_secret: docker-username
+      password:
+        from_secret: docker-password
