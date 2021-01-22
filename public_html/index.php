@@ -5,7 +5,8 @@ $dbuser = getenv('DB_USER');
 $dbpass = getenv('DB_PASS');
 
 $nodename = getenv('NODE_NAME');
-$podname = getenv('HOSTNAME');
+$podname  = getenv('POD_NAME');
+$podip    = getenv('POD_IP');
 
 // Create connection
 $conn = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
