@@ -1,1 +1,138 @@
-TBD
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-http-distribution-testing--mysql
+  labels:
+    app: k8s-http-distribution-testing--mysql
+spec:
+  selector:
+    matchLabels:
+      app: k8s-http-distribution-testing--mysql
+  template:
+    metadata:
+      labels:
+        app: k8s-http-distribution-testing--mysql
+    spec:
+      containers:
+      - image: mysql:5.7
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "Passw0rd"
+        ports:
+        - containerPort: 3306
+          name: mysql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: k8s-http-distribution-testing--mysql
+  name: k8s-http-distribution-testing--mysql
+spec:
+  ports:
+  - name: "mysql"
+    port: 3306
+    targetPort: 3306
+  selector:
+    app: k8s-http-distribution-testing--mysql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: k8s-http-distribution-testing--www
+  name: k8s-http-distribution-testing--www
+spec:
+  ports:
+  - name: "http"
+    port: 80
+    targetPort: 80
+  selector:
+    app: k8s-http-distribution-testing--www
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: k8s-http-distribution-testing--web
+  name: k8s-http-distribution-testing--web
+spec:
+  selector:
+    matchLabels:
+      app: k8s-http-distribution-testing--web
+  template:
+    metadata:
+      labels:
+        app: k8s-http-distribution-testing--web
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: In
+                values:
+                - "true"
+      containers:
+      - env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: DB_HOST
+          value: "k8s-http-distribution-testing--mysql"
+        - name: DB_NAME
+          value: "Data"
+        - name: DB_USER
+          value: "root"
+        - name: DB_PASS
+          value: "Passw0rd"
+        image: cube8021/k8s-http-distribution-testing:3
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 2
+          successThreshold: 1
+          timeoutSeconds: 2
+        name: k8s-http-distribution-testing
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 2
+          successThreshold: 2
+          timeoutSeconds: 2
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  labels:
+    app: k8s-http-distribution-testing
+  name: k8s-http-distribution-testing
+spec:
+  rules:
+  - host: k8s-http-distribution-testing.support.tools
+    http:
+      paths:
+      - backend:
+          serviceName: k8s-http-distribution-testing--www
+          servicePort: 80
