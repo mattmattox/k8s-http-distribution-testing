@@ -17,7 +17,7 @@ if ($conn->connect_error)
   die("Connection failed: " . $conn->connect_error);
 }
 
-$sql = "INSERT INTO Connections (nodename, podname) VALUES ('{$nodename}', '{$podname}')";
+$sql = "INSERT INTO Connections (nodename, podname, podip) VALUES ('{$nodename}', '{$podname}', '{$podip}')";
 
 if ($conn->query($sql) === TRUE)
 {
